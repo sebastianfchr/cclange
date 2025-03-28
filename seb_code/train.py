@@ -126,7 +126,7 @@ print(r)
 print(predict_sentence("water is wet", "positive", tokenizer, MAX_LEN))
 
 
-exit(0)
+# exit(0)
 
 
 
