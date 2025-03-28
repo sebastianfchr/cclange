@@ -1,0 +1,23 @@
+# from nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+from nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04
+# tf 2.13, cudn8 (need 8.6 technically), 
+
+
+RUN apt-get update && apt-get install -y software-properties-common
+RUN apt-get install -y python3.9
+RUN apt-get install -y pip
+
+# RUN apt install -y curl && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+# run python3 -m ensurepip --upgrade
+# RUN python3 get-pip.py -y
+RUN python3 -m pip install pandas
+RUN python3 -m pip install tensorflow==2.7.0
+RUN python3 -m pip install -U scikit-learn
+RUN python3 -m pip install -U transformers==4.27.4
+RUN python3 -m pip install protobuf==3.20.*
+
+COPY code_temp /code_temp
+
+
+# RUN apt install software-properties-common &&  add-apt-repository ppa:deadsnakes/ppa  && apt-get install python3.9 && apt update && apt install python3.9
+
