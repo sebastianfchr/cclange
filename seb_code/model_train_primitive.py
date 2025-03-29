@@ -39,7 +39,7 @@ for k in range(train.shape[0]):
     idx = text1.find(text2)
     chars = np.zeros((len(text1)))
     chars[idx:idx+len(text2)]=1                             # character-position mask = 1 for text2 inside text1 
-    if text1[idx-1]==' ': chars[idx-1] = 1                  # space before text2 is also included in mask
+    if text1[idx-1]==' ': chars[idx-1] = 1                  # space before text2 is also included in mask, because many tokens begin with ' '
     enc = tokenizer.encode(text1) 
         
     # print(text1)
@@ -69,10 +69,10 @@ for k in range(train.shape[0]):
     # remember that 'enc.ids' is a tokenization of text1, and that text2 ⊆ text1
     # 'toks' is an index-array on enc.ids, which indicates tokens text2 within text1 
     for i,(a,b) in enumerate(offsets): 
-        sm = np.sum(chars[a:b])
+        sm = np.sum(chars[a:b]) # (this tells us if the offset-range is belongs to text2 or not)
         if sm>0: toks.append(i) 
+    # ... going back from token to resp. word-length (through offsets), allows us to index tok(text2) inside tok(text2)  
 
-    # print(toks)
 
         
     s_tok = sentiment_id[train.loc[k,'sentiment']]
@@ -91,9 +91,13 @@ for k in range(train.shape[0]):
     # => this will be predicted from (tokenized_text1, tokenized_sentiment) 
     if len(toks)>0:
         # TODO: why never 0? toks[0]+1 (toks[0] >= 0, but toks[0]+1 > 0)
-        # TODO: probably because of the compulsory sentence-beginning-token that's not interesting...
+        # TODO: probably because of the compulsory sentence-beginning-token that's not interesting
+        #   ... *but not part of input text* pushes first real tex-token and all after one to the right!
+        #   ... last one is +1, because toks[-1] is actually the INDEX of the last token. 
+        #   ... but we want to learn end_tokens such that it's after the last gotten index (for non-inclusive indexing in prediction!)
         start_tokens[k,toks[0]+1] = 1
         end_tokens[k,toks[-1]+1] = 1
+        # it's also interesting to note that training alone leads to (l < r)
         
 
 
@@ -172,17 +176,6 @@ def jaccard(str1, str2):
 
 
 
-# # quick test whether it works...
-# a, b = model(    
-#     (np.stack([input_ids[0]]),
-#     np.stack([attention_mask[0]]),
-#     np.stack([token_type_ids[0]]))  )
-# print(a)
-# print(b)
-# print(a.shape)
-# print(b.shape)
-
-
 
 # # ================== train ==================
 jac = []; VER='v0'; DISPLAY=1 # USE display=1 FOR INTERACTIVE
@@ -240,7 +233,8 @@ for fold,(idxT,idxV) in enumerate(skf.split(input_ids, train.sentiment.values)):
         else:
             text1 = " "+" ".join(train.loc[k,'text'].split())
             enc = tokenizer.encode(text1)
-            st = tokenizer.decode(enc.ids[a-1:b]) # TODO :look at how they're encoded. Also, conveniently -1 because of picking the word if on same position 
+            # TODO: The meaning of this is interesting: In my opinion, it should be (a:b+1), because they're still shifted tokens! 
+            st = tokenizer.decode(enc.ids[a-1:b]) 
         all.append(jaccard(st,train.loc[k,'selected_text']))
     jac.append(np.mean(all))
     print('>>>> FOLD %i Jaccard ='%(fold+1),np.mean(all))
