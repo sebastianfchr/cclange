@@ -20,10 +20,10 @@ class MyRobertaModel(tf.keras.Model):
 
         self.dropout_left = tf.keras.layers.Dropout(0.1)
         self.conv1d_left = tf.keras.layers.Conv1D(1,1)
-        # right
+
         self.dropout_right = tf.keras.layers.Dropout(0.1)
         self.conv1d_right = tf.keras.layers.Conv1D(1,1)
-        # these are transformations (no parameters or states): reusable
+
         self.flatten = tf.keras.layers.Flatten()
         self.softmax = tf.keras.layers.Activation('softmax')
 
@@ -41,8 +41,8 @@ class MyRobertaModel(tf.keras.Model):
 
         xr = self.dropout_right(x, training=training)   # -> (?, MAX_LEN, hidden_size
         xr = self.conv1d_right(xr)                      # -> (?, MAX_LEN, 1
-        xr = self.flatten(xr)                           # -> (?, MAX_LEN*1)
-        xr = self.softmax(xr)                           # -> (?, MAX_LEN*1)
+        xr = self.flatten(xr)                           # -> (?, MAX_LEN)
+        xr = self.softmax(xr)                           # -> (?, MAX_LEN)
 
         return (xl, xr) # one-hot like encodings from sigmoid for left and right boundary of extracted token-sequence
      
