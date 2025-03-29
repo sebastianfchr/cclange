@@ -2,18 +2,25 @@ import tensorflow as tf
 import numpy as np
 from . import models
 from . import utils
+import tokenizers
 
 # TODO: Naming. Technically, not sentences.
 
 
 class RobertaPredictor:
-    
-    def __init__(self, max_len_tokens: int, weights_path: str, tokenizer):
+
+
+    def __init__(self, 
+                 max_len_tokens : int = 96, 
+                 weights_path : str ='v0-roberta-0.h5', 
+                 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True)):
         # Load structure, then weights. Weights must be it's structurally correct
         self.max_len_tokens = max_len_tokens
         self.model = models.build_model(self.max_len_tokens)
         self.model.load_weights(weights_path, by_name=True, skip_mismatch=False) 
         self.tokenizer = tokenizer
+
+
 
 
     # TODO: @tf.graph
@@ -68,7 +75,7 @@ class RobertaPredictor:
 
     def predict_sentence(self, sentence: str, sentiment: str):
         # single prediction is just a sentence-batch of size 1
-        self.predict_sentence_batch([sentence], [sentiment])
+        return self.predict_sentence_batch([sentence], [sentiment])
 
 
 
