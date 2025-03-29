@@ -1,7 +1,7 @@
 import tensorflow as tf
-import models
 import numpy as np
-import utils
+from . import models
+from . import utils
 
 # TODO: Naming. Technically, not sentences.
 

@@ -1,4 +1,4 @@
-import pandas as pd, numpy as np
+import numpy as np
 from transformers import *
 
 # make sure that's how it is in the data!

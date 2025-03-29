@@ -15,7 +15,9 @@ RUN python3 -m pip install tensorflow==2.7.0
 RUN python3 -m pip install -U scikit-learn
 RUN python3 -m pip install -U transformers==4.27.4
 RUN python3 -m pip install protobuf==3.20.*
+RUN python3 -m pip install fastapi uvicorn
 
+# won't do it like that...
 COPY code_temp /code_temp
 
 

@@ -13,7 +13,6 @@ class TestClassPredictor:
         """ RobertaPredictor.predict_sentence_batch() """
 
         num_elements_tested = 10
-
         # Input Data Preparation
         tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) 
         test = pd.read_csv('data/test.csv').fillna('')

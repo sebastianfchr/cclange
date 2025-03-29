@@ -2,7 +2,8 @@
 import tensorflow as tf
 from transformers import RobertaConfig, TFRobertaModel
 
-# ================== VERSION 1: tf.keras.Model Style ==================
+# VERSION 1: tf.keras.Model Style
+# This is never used, but I'm just putting it in here in case it's considered better practice
 
 class MyRobertaModel(tf.keras.Model):
 
@@ -21,9 +22,6 @@ class MyRobertaModel(tf.keras.Model):
         self.flatten = tf.keras.layers.Flatten()
         self.softmax = tf.keras.layers.Activation('softmax')
 
-
-    # TODO: input-signature to assure int input
-    # def call(self, id_att_tok, training=False):
     def call(self, id_att_tok, training=False):
 
         id, att, tok = id_att_tok[0], id_att_tok[1], id_att_tok[2]
@@ -44,9 +42,8 @@ class MyRobertaModel(tf.keras.Model):
         return (xl, xr) # one-hot like encodings from sigmoid for left and right boundary of extracted token-sequence
      
 
-# ================== VERSION 2: TF API Style ==================
-# decided for this, because it's it´s better for deployment, ... allegedly
-# also, clearer layer-inspection and loading of saved weights
+# VERSION 2: TF API Style 
+# Used this due to better inference in deployment, clearer layer-inspection and loading of weights
 
 def build_model(max_len_tokens):
     ids = tf.keras.layers.Input((max_len_tokens,), dtype=tf.int32) # (?, MAX_LEN)  Tokenized sentence "<s> {...tokens} </s></s> sentiment </s> ..(masked pads).."
