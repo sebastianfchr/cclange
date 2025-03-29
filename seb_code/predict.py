@@ -5,11 +5,12 @@ import utils
 
 class RobertaPredictor:
     
-    def __init__(self, max_len_tokens: int, weights_path: str):
+    def __init__(self, max_len_tokens: int, weights_path: str, tokenizer):
         # Load structure, then weights. Weights must be it's structurally correct
         self.max_len_tokens = max_len_tokens
         self.model = models.build_model(self.max_len_tokens)
         self.model.load_weights(weights_path, by_name=True, skip_mismatch=False) 
+        self.tokenizer = tokenizer
 
 
     # note that there's model.predict instead of the simple call to handle large inputs
@@ -38,13 +39,13 @@ class RobertaPredictor:
         return ls, rs
 
 
-    def predict_sentence(self, sentence: str, sentiment: str, tokenizer):
+    def predict_sentence(self, sentence: str, sentiment: str):
 
         assert(sentiment in utils.sentiment_id.keys())
 
         # this merges spaces, and adds a space at the front (if there's none already)
         sentence_prepared= " "+" ".join(sentence.split())
-        enc = tokenizer.encode(sentence_prepared)        
+        enc = self.tokenizer.encode(sentence_prepared)        
 
         # TODO: currently 1. Change when chunking
         input_ids = np.ones((1,self.max_len_tokens),dtype='int32') # actually ones! 1:<pad> in vocab
@@ -65,12 +66,40 @@ class RobertaPredictor:
         print(enc.ids)
 
         st = tokenizer.decode(input_ids[0, l:r+1])
-        # st = tokenizer.decode(enc.ids[l-1:r])
-        # note: this is the same as enc.ids[l-1:r] ? At least the code in model_train_primitive suggests this!
-        
+
         return st
     
-    # TODO: Predict_sentences!
+    # def predict_sentence_batch(self, sentence: list[str], sentiment: list[str], tokenizer):
+
+    #     assert(sentiment in utils.sentiment_id.keys())
+
+    #     # this merges spaces, and adds a space at the front (if there's none already)
+    #     sentence_prepared= " "+" ".join(sentence.split())
+    #     enc = tokenizer.encode(sentence_prepared)        
+
+    #     # TODO: currently 1. Change when chunking
+    #     input_ids = np.ones((1,self.max_len_tokens),dtype='int32') # actually ones! 1:<pad> in vocab
+    #     attention_mask = np.zeros((1, self.max_len_tokens), dtype='int32')
+
+    #     print(utils.sentiment_id[sentiment])
+
+    #     # fill appropriately
+    #     input_ids[0,:len(enc.ids)+5] = [0] + enc.ids + [2,2] + [utils.sentiment_id[sentiment]] + [2]
+    #     attention_mask[0,:len(enc.ids)+5] = 1
+
+    #     ls, rs = self.predict_tokenized(input_ids, attention_mask)
+
+    #     l = ls[0]
+    #     r = rs[0]
+    #     print("l,r = ", l , r)
+
+    #     print(enc.ids)
+
+    #     st = tokenizer.decode(input_ids[0, l:r+1])
+
+    #     return st
+    
+    # # TODO: Predict_sentences!
 
 
 
@@ -97,7 +126,7 @@ input_ids_t, attention_mask_t, token_type_ids_t = utils.prepare_encode_test(test
 # TODO: How exactly is the attention mask structured? 
 # See Note: The attention-mask reveals exactly the parts of the sentence that's not void [0 cover only pads]
 
-rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/v0-roberta-0.h5')
+rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/v0-roberta-0.h5', tokenizer)
 # rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/seb_code/weights_final.h5')
 # TODO: This should be the test. Tokenized predicts same 
 
@@ -116,7 +145,7 @@ print("\n".join(sentences))
 print("==============================")
 print("==============================")
 
-print(rp.predict_sentence("my boss is bullying me...","negative", tokenizer))
+print(rp.predict_sentence("my boss is bullying me...","negative"))
 
 # print(tokenizer.encode(" the big bad wolf").ids)
 exit(0)
