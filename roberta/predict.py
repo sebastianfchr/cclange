@@ -1,23 +1,22 @@
 import tensorflow as tf
 import numpy as np
-from .roberta import models
+from .models import build_model
+# import .models
 import tokenizers
-
-# TODO: Naming. Technically, not sentences.
 
 
 class RobertaPredictor:
 
-
+    # standard-paths here assume that it's called from the parent dir
     def __init__(self, 
-                 max_len_tokens : int = 96, 
-                 weights_path : str ='v0-roberta-0.h5', 
-                 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True),
+                 max_len_tokens, 
+                 weights_path, 
+                 tokenizer,
                  sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}):
         
         # Load structure, then weights. Weights must be it's structurally correct
         self.max_len_tokens = max_len_tokens
-        self.model = models.build_model(self.max_len_tokens)
+        self.model = build_model(self.max_len_tokens)
         self.model.load_weights(weights_path, by_name=True, skip_mismatch=False) 
         self.tokenizer = tokenizer
         self.sentiment_id = sentiment_id

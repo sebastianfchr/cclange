@@ -4,14 +4,19 @@ from transformers import RobertaConfig, TFRobertaModel
 
 # VERSION 1: tf.keras.Model Style
 # This is never used, but I'm just putting it in here in case it's considered better practice
+import os 
 
 class MyRobertaModel(tf.keras.Model):
 
-    def __init__(self, model_name="roberta"):
+    def __init__(self):
         super().__init__()
         # TODO: these paths come into init
-        config = RobertaConfig.from_pretrained('config/config-roberta-base.json')
-        self.roberta = TFRobertaModel.from_pretrained('config/pretrained-roberta-base.h5',config=config) 
+
+    
+        # load weights and config from within this package-dir
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        config = RobertaConfig.from_pretrained(os.path.join(package_dir, "config", "config-roberta-base.json"))
+        self.roberta = TFRobertaModel.from_pretrained(os.path.join(package_dir, "config", "pretrained-roberta-base.h5"),config=config) 
 
         self.dropout_left = tf.keras.layers.Dropout(0.1)
         self.conv1d_left = tf.keras.layers.Conv1D(1,1)
@@ -46,14 +51,15 @@ class MyRobertaModel(tf.keras.Model):
 # Used this due to better inference in deployment, clearer layer-inspection and loading of weights
 
 def build_model(max_len_tokens):
+
     ids = tf.keras.layers.Input((max_len_tokens,), dtype=tf.int32) # (?, MAX_LEN)  Tokenized sentence "<s> {...tokens} </s></s> sentiment </s> ..(masked pads).."
     att = tf.keras.layers.Input((max_len_tokens,), dtype=tf.int32) # (?, MAX_LEN)  Attention mask for non-padded part above
     tok = tf.keras.layers.Input((max_len_tokens,), dtype=tf.int32) # (?, MAX_LEN)  unused part, Q: probably necessary for bert-base?
 
-    config = RobertaConfig.from_pretrained('config/config-roberta-base.json')
-    # well, I assume this is a roBERTa model, not a BERT model! Maybe to mislead chatgpt?
-    bert_model = TFRobertaModel.from_pretrained('config/pretrained-roberta-base.h5',config=config)
-    # bert_model = TFRobertaModel()
+    # load weights and config from within this package-dir. 
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    config = RobertaConfig.from_pretrained(os.path.join(package_dir, "config", "config-roberta-base.json"))
+    bert_model = TFRobertaModel.from_pretrained(os.path.join(package_dir, "config", "pretrained-roberta-base.h5"), config=config)
 
     # x[0] is a representation with hidden-size of the tokenized output (found substring representing sentiment)
     # In the following, it will be put through some layers 

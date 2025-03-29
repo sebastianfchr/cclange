@@ -1,9 +1,6 @@
 import numpy as np
 from transformers import *
 
-# this is the assumption
-# TODO: Maybe make Encoder!
-
 class TokenEncoder:
 
     def __init__(self, tokenizer, max_len_tokens, sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}):

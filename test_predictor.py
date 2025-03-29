@@ -1,7 +1,7 @@
 
-from predict import RobertaPredictor
+from roberta import RobertaPredictor, TokenEncoder
 import tokenizers
-import utils
+# import roberta.utils as utils
 import pandas as pd
 import pytest 
 
@@ -15,10 +15,10 @@ class TestClassPredictor:
         num_elements_tested = 10
 
         # Test Input Token Data Preparation
-        tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) 
-        test = pd.read_csv('data/test.csv').fillna('')
+        tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('./roberta/config/vocab-roberta-base.json', './roberta/config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) 
+        test = pd.read_csv('./roberta/data/test.csv').fillna('')
 
-        e = utils.TokenEncoder(tokenizer, MAX_LEN)
+        e = TokenEncoder(tokenizer, MAX_LEN)
         input_ids_t, attention_mask_t, _ = e.prepare_encode_test(test)
 
         rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/v0-roberta-0.h5', tokenizer)
