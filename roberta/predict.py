@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from . import models
-from . import utils
+from .roberta import models
 import tokenizers
 
 # TODO: Naming. Technically, not sentences.
@@ -13,12 +12,15 @@ class RobertaPredictor:
     def __init__(self, 
                  max_len_tokens : int = 96, 
                  weights_path : str ='v0-roberta-0.h5', 
-                 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True)):
+                 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True),
+                 sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}):
+        
         # Load structure, then weights. Weights must be it's structurally correct
         self.max_len_tokens = max_len_tokens
         self.model = models.build_model(self.max_len_tokens)
         self.model.load_weights(weights_path, by_name=True, skip_mismatch=False) 
         self.tokenizer = tokenizer
+        self.sentiment_id = sentiment_id
 
 
 
@@ -49,7 +51,7 @@ class RobertaPredictor:
     def predict_sentence_batch(self, sentences: list[str], sentiments: list[str]):
         # writing is cumbersome, but optimized: allow batchwise prediction inside model!
 
-        assert(all([s in utils.sentiment_id.keys() for s in sentiments]))
+        assert(all([s in self.sentiment_id.keys() for s in sentiments]))
         assert(len(sentences) == len(sentiments))
         n = len(sentences)
 
@@ -61,7 +63,7 @@ class RobertaPredictor:
         attention_masks = np.zeros((n, self.max_len_tokens), dtype='int32')
 
         for i in range(n):
-            input_idss[i, 0:len(encs[i].ids)+5] = [0] + encs[i].ids + [2,2] + [utils.sentiment_id[sentiments[i]]] + [2]
+            input_idss[i, 0:len(encs[i].ids)+5] = [0] + encs[i].ids + [2,2] + [self.sentiment_id[sentiments[i]]] + [2]
             attention_masks[i, 0:len(encs[i].ids)+5] = 1
 
         # here's the reason we did all this: efficient call of model!

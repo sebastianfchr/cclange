@@ -13,13 +13,18 @@ class TestClassPredictor:
         """ RobertaPredictor.predict_sentence_batch() """
 
         num_elements_tested = 10
-        # Input Data Preparation
+
+        # Test Input Token Data Preparation
         tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) 
         test = pd.read_csv('data/test.csv').fillna('')
-        input_ids_t, attention_mask_t, _ = utils.prepare_encode_test(test, MAX_LEN, tokenizer)
+
+        e = utils.TokenEncoder(tokenizer, MAX_LEN)
+        input_ids_t, attention_mask_t, _ = e.prepare_encode_test(test)
+
         rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/v0-roberta-0.h5', tokenizer)
 
-        # 1) Manual tokenization, tokenized prediction, and decoding of prediction to sentence-fragments
+        # Version 1) 
+        # Use inputs from tokenization, manual tokenized prediction, and decoding of prediction to sentence-fragments
 
         # ids and attention_masks. Predict left end right end of subsequence-range within ids 
         ids, ams = input_ids_t[0:num_elements_tested], attention_mask_t[0:num_elements_tested]
@@ -29,7 +34,8 @@ class TestClassPredictor:
         # decode them into sentence sub-fragments via tokenizer
         sentences_manual = list(map(tokenizer.decode, predicted_subsequences))
 
-        # 2) Automatic tokenization, prediction, decoding of plain-text
+        # Version 2) 
+        # Automatic tokenization, prediction, decoding of plain-text
 
         # now note that "ids" were already (<s> {sentence_tokenized} </s></s> sentiment_token </s>)
         # if we feed in (sentence, sentiment) as strings, our RobertaPredictor.predict_sentence_batch 

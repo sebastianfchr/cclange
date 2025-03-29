@@ -12,15 +12,19 @@ MAX_LEN = 96
 
 import utils
 
-sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
 
-# make a tokenizer for encodings
+# Necessary facts for encodings: Tokenizer and sentiments
 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) # !!!!!!! MATE! THIS SOLVES IT!
-
+sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
+# Test and train dataset
 test = pd.read_csv('data/test.csv').fillna('')
 train = pd.read_csv('data/train.csv').fillna('')
-input_ids, attention_mask, token_type_ids, start_tokens, end_tokens = utils.prepare_encode_train(train, MAX_LEN, tokenizer)
-input_ids_t, attention_mask_t, token_type_ids_t = utils.prepare_encode_test(test, MAX_LEN, tokenizer)
+
+# Use a 'TokenEncoder' to create the necessary ground-truth and test-data from 'test' and 'train' data
+# in the format  needed by RoBERTa
+e = utils.TokenEncoder(tokenizer, MAX_LEN)
+input_ids, attention_mask, token_type_ids, start_tokens, end_tokens = e.prepare_encode_train(train)
+input_ids_t, attention_mask_t, token_type_ids_t = e.prepare_encode_test(test)
 
 
 # 1) functional API style
@@ -32,15 +36,10 @@ model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Ada
 # optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5)
 # model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
-# model.load_weights('weights_final.h5', by_name=True, skip_mismatch=False) # load HUK model
-# print("apparently success")
 
 
+# #rain: This is the original training-loop from the script
 
-
-
-
-# # ================== train ==================
 jac = []; VER='v0'; DISPLAY=1 # USE display=1 FOR INTERACTIVE
 oof_start = np.zeros((input_ids.shape[0],MAX_LEN))
 oof_end = np.zeros((input_ids.shape[0],MAX_LEN))
@@ -59,15 +58,11 @@ for fold,(idxT,idxV) in enumerate(skf.split(input_ids, train.sentiment.values)):
     model = models.build_model(MAX_LEN)
     model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5))
 
-    # model.load_weights('weights_final.h5', by_name=True, skip_mismatch=False) # load HUK model
-
-    # callback for saving
+    # Callback for saving. Saves every epoch, but overrides them within a fold. Only last epoch of fold remains
     sv = tf.keras.callbacks.ModelCheckpoint('%s-roberta-%i.h5'%(VER,fold), monitor='val_loss', verbose=1, save_best_only=True,
         save_weights_only=True, mode='auto', save_freq='epoch')
 
-
-    # model.load_weights('weights_final.h5', by_name=True) # load HUK model
-
+    # model.load_weights('weights_final.h5', by_name=True, skip_mismatch=False) # load HUK model
     model.fit([input_ids[idxT,], attention_mask[idxT,], token_type_ids[idxT,]], [start_tokens[idxT,], end_tokens[idxT,]], 
         epochs=3, batch_size=32  , verbose=DISPLAY, #callbacks=[sv],
         validation_data=([input_ids[idxV,],attention_mask[idxV,],token_type_ids[idxV,]], 
