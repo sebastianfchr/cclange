@@ -75,7 +75,7 @@ class RobertaPredictor:
 
     def predict_sentence(self, sentence: str, sentiment: str):
         # single prediction is just a sentence-batch of size 1
-        return self.predict_sentence_batch([sentence], [sentiment])
+        return self.predict_sentence_batch([sentence], [sentiment])[0]
 
 
 

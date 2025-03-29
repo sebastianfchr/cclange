@@ -11,12 +11,12 @@ rob = roberta.RobertaPredictor() # "standard" constructor taking default args
 
 app = FastAPI()
 
-class Item(BaseModel):
+class SentenceItem(BaseModel):
     sentence: str
     sentiment: str # technically, this could be
 
-@app.post("/submit/")
-async def receive_post(item: Item):
+@app.post("/predict_sentence/")
+async def receive_post(item: SentenceItem):
     try:
         sentence_excerpt = rob.predict_sentence(item.sentence, item.sentiment)
         return {"message": "OK", "data": sentence_excerpt}
