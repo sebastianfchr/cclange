@@ -44,6 +44,8 @@ print("==============================")
 
 
 print("\n".join(rp.predict_sentence_batch(train['text'][0:10],train['sentiment'][0:10])))
+print("============")
+print("\n".join(rp.predict_sentence_batch(test['text'][0:100],test['sentiment'][0:100])))
 
 
 
