@@ -5,10 +5,11 @@ from predict import RobertaPredictor
 import tokenizers
 import utils
 import pandas as pd
+import pytest 
 
 MAX_LEN = 96
 
-sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
+# sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
 
 # make a tokenizer for encodings
 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('config/vocab-roberta-base.json', 'config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) # !!!!!!! MATE! THIS SOLVES IT!
@@ -40,12 +41,7 @@ print("NOTE: Those two versions must be the same")
 print("==============================")
 
 
-# VERSION 2: Above is embedded into a function
-
-
-print("\n".join(rp.predict_sentence_batch(train['text'][0:10],train['sentiment'][0:10])))
+# print("\n".join(rp.predict_sentence_batch(train['text'][0:10],train['sentiment'][0:10])))
 print("============")
+# print("\n".join(rp.predict_sentence_batch(test['text'][0:100],test['sentiment'][0:100])))
 print("\n".join(rp.predict_sentence_batch(test['text'][0:100],test['sentiment'][0:100])))
-
-
-

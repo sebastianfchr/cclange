@@ -3,6 +3,9 @@ import models
 import numpy as np
 import utils
 
+# TODO: Naming. Technically, not sentences.
+
+
 class RobertaPredictor:
     
     def __init__(self, max_len_tokens: int, weights_path: str, tokenizer):
@@ -44,7 +47,7 @@ class RobertaPredictor:
         n = len(sentences)
 
         # Per sentence: merges spaces, and adds a space at the front, then encode
-        sentences_prepared = list(map(lambda stc:  " "+" ".join(stc.split()), sentences ))
+        sentences_prepared = map(lambda stc:  " "+" ".join(stc.split()), sentences)
         encs = list(map(self.tokenizer.encode, sentences_prepared))
 
         input_idss = np.ones((n, self.max_len_tokens),dtype='int32') # actually ones! 1:<pad> in vocab
@@ -64,6 +67,7 @@ class RobertaPredictor:
     
 
     def predict_sentence(self, sentence: str, sentiment: str):
+        # single prediction is just a sentence-batch of size 1
         self.predict_sentence_batch([sentence], [sentiment])
 
 
