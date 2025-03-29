@@ -1,7 +1,8 @@
 import numpy as np
 from transformers import *
 
-# make sure that's how it is in the data!
+# this is the assumption
+# TODO: Maybe make Encoder!
 sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
 
 def prepare_encode_train(train_pd, max_len_tokens, tokenizer):

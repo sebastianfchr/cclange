@@ -47,3 +47,11 @@ async def receive_post(item: SentenceBatch):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8001)
+
+
+# Example requests:
+
+# single on /predict_sentence/ 
+# curl -X 'POST' 'http://127.0.0.1:8001/predict_sentence/'      -H 'Content-Type: application/json'      -d '{"sentence": "Going down the beautiful road, I met a horrible rabbit", "sentiment": "negative"}'
+# batch on /predict_sentence_batch/
+# curl -X 'POST' 'http://127.0.0.1:8001/predict_sentence_batch/'      -H 'Content-Type: application/json'      -d '{"sentences": ["Going down the beautiful road, I met a horrible rabbit", "while drinking a craft beer, I became damn hungry"], "sentiments": ["negative", "neutral"]}'
