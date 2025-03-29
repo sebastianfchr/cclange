@@ -13,9 +13,6 @@ class RobertaPredictor:
         self.tokenizer = tokenizer
 
 
-    # note that there's model.predict instead of the simple call to handle large inputs
-    # TODO: wrap around this... something that tokenizes a sentence
-
     # TODO: @tf.graph
     def predict_tokenized(self, input_ids, attention_mask):
         # Batch-wise prediction of token-substrings encoded in input_ids and attention_masks,
@@ -65,42 +62,38 @@ class RobertaPredictor:
 
         print(enc.ids)
 
-        st = tokenizer.decode(input_ids[0, l:r+1])
+        st = self.tokenizer.decode(input_ids[0, l:r+1])
 
         return st
     
-    # def predict_sentence_batch(self, sentence: list[str], sentiment: list[str], tokenizer):
-
-    #     assert(sentiment in utils.sentiment_id.keys())
-
-    #     # this merges spaces, and adds a space at the front (if there's none already)
-    #     sentence_prepared= " "+" ".join(sentence.split())
-    #     enc = tokenizer.encode(sentence_prepared)        
-
-    #     # TODO: currently 1. Change when chunking
-    #     input_ids = np.ones((1,self.max_len_tokens),dtype='int32') # actually ones! 1:<pad> in vocab
-    #     attention_mask = np.zeros((1, self.max_len_tokens), dtype='int32')
-
-    #     print(utils.sentiment_id[sentiment])
-
-    #     # fill appropriately
-    #     input_ids[0,:len(enc.ids)+5] = [0] + enc.ids + [2,2] + [utils.sentiment_id[sentiment]] + [2]
-    #     attention_mask[0,:len(enc.ids)+5] = 1
-
-    #     ls, rs = self.predict_tokenized(input_ids, attention_mask)
-
-    #     l = ls[0]
-    #     r = rs[0]
-    #     print("l,r = ", l , r)
-
-    #     print(enc.ids)
-
-    #     st = tokenizer.decode(input_ids[0, l:r+1])
-
-    #     return st
     
-    # # TODO: Predict_sentences!
+    def predict_sentence_batch(self, sentences: list[str], sentiments: list[str]):
+        # writing is cumbersome, but optimized: allow batchwise prediction inside model!
 
+        assert(all([s in utils.sentiment_id.keys() for s in sentiments]))
+        assert(len(sentences) == len(sentiments))
+        n = len(sentences)
+
+        # Per sentence: merges spaces, and adds a space at the front, then encode
+        sentences_prepared = list(map(lambda stc:  " "+" ".join(stc.split()), sentences ))
+        encs = list(map(self.tokenizer.encode, sentences_prepared))
+
+        input_idss = np.ones((n, self.max_len_tokens),dtype='int32') # actually ones! 1:<pad> in vocab
+        attention_masks = np.zeros((n, self.max_len_tokens), dtype='int32')
+
+        for i in range(n):
+            input_idss[i, 0:len(encs[i].ids)+5] = [0] + encs[i].ids + [2,2] + [utils.sentiment_id[sentiments[i]]] + [2]
+            attention_masks[i, 0:len(encs[i].ids)+5] = 1
+
+        # here's the reason we did all this: efficient call of model!
+        ls, rs = self.predict_tokenized(input_idss, attention_masks)
+        predicted_subsequences = [input_idss[i, l:r+1] for i, (l,r) in enumerate(zip(ls,rs))]
+
+        sts = list(map(self.tokenizer.decode, predicted_subsequences))
+
+        return sts
+    
+    
 
 
 # TODO: move somewhere else
@@ -121,11 +114,6 @@ input_ids, attention_mask, token_type_ids, start_tokens, end_tokens = utils.prep
 input_ids_t, attention_mask_t, token_type_ids_t = utils.prepare_encode_test(test, MAX_LEN, tokenizer)
 
 
-
-
-# TODO: How exactly is the attention mask structured? 
-# See Note: The attention-mask reveals exactly the parts of the sentence that's not void [0 cover only pads]
-
 rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/v0-roberta-0.h5', tokenizer)
 # rp = RobertaPredictor(MAX_LEN, '/home/seb/Desktop/CodingChallenge_MLE/seb_code/weights_final.h5')
 # TODO: This should be the test. Tokenized predicts same 
@@ -145,7 +133,8 @@ print("\n".join(sentences))
 print("==============================")
 print("==============================")
 
-print(rp.predict_sentence("my boss is bullying me...","negative"))
+# print(rp.predict_sentence("my boss is bullying me...","negative"))
+print(rp.predict_sentence_batch(["my boss is bullying me..."],["negative"]))
 
 # print(tokenizer.encode(" the big bad wolf").ids)
 exit(0)

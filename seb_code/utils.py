@@ -6,9 +6,7 @@ sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
 
 def prepare_encode_train(train_pd, max_len_tokens, tokenizer):
 
-
     # ================================== train ======================================== 
-
     num_train_entries = train_pd.shape[0]
     input_ids = np.ones((num_train_entries,max_len_tokens),dtype='int32')
     attention_mask = np.zeros((num_train_entries,max_len_tokens),dtype='int32')
@@ -98,3 +96,16 @@ def prepare_encode_test(test_pd, max_len_tokens, tokenizer):
         attention_mask_t[k,:len(enc.ids)+5] = 1
 
     return input_ids_t, attention_mask_t, token_type_ids_t
+
+
+
+# ================== Loss metric ==================
+# will be used to determine overlap of tokenized sentence's token-subsequence from
+# prediction (later rextracted per predicted one-hot indices) and desired subsequence
+def jaccard(str1, str2): 
+    a = set(str1.lower().split()) 
+    b = set(str2.lower().split())
+    if (len(a)==0) & (len(b)==0): return 0.5
+    c = a.intersection(b)
+    return float(len(c)) / (len(a) + len(b) - len(c))
+
