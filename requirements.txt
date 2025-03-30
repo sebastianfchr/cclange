@@ -1,0 +1,8 @@
+pandas
+tensorflow==2.7
+numpy==1.26 # for compatibility with above 
+scikit-learn
+transformers==4.27.4
+protobuf==3.20.*
+# fastapi
+pytest
