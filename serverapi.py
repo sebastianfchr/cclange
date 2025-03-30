@@ -6,7 +6,6 @@ import roberta
 
 app = FastAPI()
 
-# switch off cors. We're local 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # This allows all origins, but you can restrict this to specific domains
@@ -59,7 +58,7 @@ def read_root():
 
 # if __name__ == "__main__":
 #     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8080)
+#     uvicorn.run(app, host="0.0.0.0", port=8001)
 
 
 
@@ -75,4 +74,3 @@ def read_root():
 # 
 
 # docker run --gpus=all -v $(pwd):/code -p 8001:8001 -w /code -it sebastianfchr/appl_tfdocker:latest -- uvicorn serverapi:app --host 0.0.0.0 --port 8001
-
