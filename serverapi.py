@@ -1,3 +1,4 @@
+import fastapi
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,12 +7,13 @@ import roberta
 
 app = FastAPI()
 
+# Cors must be off
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # This allows all origins, but you can restrict this to specific domains
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],  
+    allow_headers=["*"],  
 )
 
 
@@ -20,57 +22,31 @@ MAX_LEN = 96
 # "Standard" model with default args 
 rob = roberta.RobertaPredictor(MAX_LEN, 'v0-roberta-0.h5') 
 
-class SentenceItem(BaseModel):
-    sentence: str
-    sentiment: str
-
 class SentenceBatch(BaseModel):
     sentences: List[str]
     sentiments: List[str]
 
-# receive and process a SentenceItem
-@app.post("/predict_sentence/")
-async def receive_post(item: SentenceItem):
-    try:
-        sentence_excerpt = rob.predict_sentence(item.sentence, item.sentiment)
-        return {"message": "OK", "data": sentence_excerpt}
-    except AssertionError:
-        return {"message": "Format Error: Input should be of format '{' sentence: str, sentiment: str '}', where sentiment is 'positive'/'neutral'/'negative'", "data": None}
-    except:
-        return {"message": "Internal Server Error", "data": None}
 
 # receive and process a SentenceBatch
 @app.post("/predict_sentence_batch/")
 async def receive_post(item: SentenceBatch):
+    
+    if not all([s in ["positive", "negative", "neutral"] for s in item.sentiments]):
+        return {"message": "Format Error", "data": "Input should be of format '{' sentences: List[str], sentiments: List[str] '}', where sentiment is 'positive'/'neutral'/'negative', and len(sentiments)==len(sentences)"}
+    if (len(item.sentences) != len(item.sentiments)) or len(item.sentences) == 0:
+            raise fastapi.HTTPException(status_code=422, detail="Format Error: Input should be of format '{' sentences: List[str], sentiments: List[str] '}', where sentiment is 'positive'/'neutral'/'negative', and len(sentiments)==len(sentences)")
     try:
         sentence_excerpts = rob.predict_sentence_batch(item.sentences, item.sentiments)
         return {"message": "OK", "data": sentence_excerpts}
-    except AssertionError:
-        return {"message": "Format Error: Input should be of format '{' sentences: List[str], sentiments: List[str] '}', where sentiment is 'positive'/'neutral'/'negative', and len(sentiments)==len(sentences)", "data": None}
     except:
-        return {"message": "Internal Server Error", "data": None}
-
-
-@app.get("/")
-def read_root():
-    return {"message": "Hello, world!"}
-
-
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8001)
+        raise fastapi.HTTPException(status_code=500, detail="Internal Server Error")
 
 
 
 
 # Example requests:
 
-# single on /predict_sentence/ 
-# curl -X POST http://localhost:8123/predict_sentence/ -H 'Content-Type: application/json' -d '{"sentence": "Going down the beautiful road, I met a horrible rabbit", "sentiment": "negative"}'
 # batch on /predict_sentence_batch/
 # curl -X POST http://localhost:8123/predict_sentence_batch/ -H 'Content-Type: application/json' -d '{"sentences": ["Going down the beautiful road, I met a horrible rabbit", "while drinking a craft beer, I became damn hungry"], "sentiments": ["negative", "neutral"]}'
-
-# maps 80 of host to 8080 on host 
-# 
 
 # docker run --gpus=all -v $(pwd):/code -p 8123:8123 -w /code -it sebastianfchr/appl_tfdocker:latest -- uvicorn serverapi:app --host 0.0.0.0 --port 8123

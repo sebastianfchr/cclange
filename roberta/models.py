@@ -65,7 +65,7 @@ def build_model(max_len_tokens):
     # In the following, it will be put through some layers 
     # x[0] is of (?, MAX_LEN, hidden_size=768). Layers turn it into (?, MAX_LEN)
     x = bert_model(ids,attention_mask=att,token_type_ids=tok)
-    
+
     x1 = tf.keras.layers.Dropout(0.1)(x[0])         # (?, MAX_LEN, hidden_size)
     x1 = tf.keras.layers.Conv1D(1,1)(x1)            # (?, MAX_LEN, 1)
     x1 = tf.keras.layers.Flatten()(x1)              # (?, 1*MAX_LEN) = (?, MAX_LEN)

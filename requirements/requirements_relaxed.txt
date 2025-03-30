@@ -6,6 +6,8 @@ wheel
 scikit-learn
 transformers
 protobuf
-# fastapi
 pytest
 matplotlib
+# for tests
+fastapi
+httpx
