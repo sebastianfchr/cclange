@@ -66,11 +66,11 @@ def read_root():
 # Example requests:
 
 # single on /predict_sentence/ 
-# curl -X POST http://localhost:8001/predict_sentence/ -H 'Content-Type: application/json' -d '{"sentence": "Going down the beautiful road, I met a horrible rabbit", "sentiment": "negative"}'
+# curl -X POST http://localhost:8123/predict_sentence/ -H 'Content-Type: application/json' -d '{"sentence": "Going down the beautiful road, I met a horrible rabbit", "sentiment": "negative"}'
 # batch on /predict_sentence_batch/
-# curl -X POST http://localhost:8001/predict_sentence_batch/ -H 'Content-Type: application/json' -d '{"sentences": ["Going down the beautiful road, I met a horrible rabbit", "while drinking a craft beer, I became damn hungry"], "sentiments": ["negative", "neutral"]}'
+# curl -X POST http://localhost:8123/predict_sentence_batch/ -H 'Content-Type: application/json' -d '{"sentences": ["Going down the beautiful road, I met a horrible rabbit", "while drinking a craft beer, I became damn hungry"], "sentiments": ["negative", "neutral"]}'
 
 # maps 80 of host to 8080 on host 
 # 
 
-# docker run --gpus=all -v $(pwd):/code -p 8001:8001 -w /code -it sebastianfchr/appl_tfdocker:latest -- uvicorn serverapi:app --host 0.0.0.0 --port 8001
+# docker run --gpus=all -v $(pwd):/code -p 8123:8123 -w /code -it sebastianfchr/appl_tfdocker:latest -- uvicorn serverapi:app --host 0.0.0.0 --port 8123
