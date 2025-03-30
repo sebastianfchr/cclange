@@ -3,8 +3,7 @@ import tensorflow.keras.backend as K
 from transformers import *
 from sklearn.model_selection import StratifiedKFold
 import tokenizers
-
-from roberta import models, TokenEncoder
+from roberta import models, TokenEncoder, jaccard
 
 
 MAX_LEN = 96
@@ -13,12 +12,13 @@ MAX_LEN = 96
 # Necessary facts for encodings: Tokenizer and sentiments
 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('roberta/config/vocab-roberta-base.json', 'roberta/config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True)
 sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
+
 # Test and train dataset
 test = pd.read_csv('./data/test.csv').fillna('')
 train = pd.read_csv('./data/train.csv').fillna('')
 
-# Use a 'TokenEncoder' to create the necessary ground-truth and test-data from 'test' and 'train' data
-# in the format  needed by RoBERTa
+# Use a 'TokenEncoder' to create the necessary ground-truth and test-data from 'test' and 'train' data 
+# in the format used by RoBERTa
 e = TokenEncoder(MAX_LEN, tokenizer)
 input_ids, attention_mask, token_type_ids, start_tokens, end_tokens = e.prepare_encode_train(train)
 input_ids_t, attention_mask_t, token_type_ids_t = e.prepare_encode_test(test)
@@ -78,7 +78,7 @@ for fold,(idxT,idxV) in enumerate(skf.split(input_ids, train.sentiment.values)):
             text1 = " "+" ".join(train.loc[k,'text'].split())
             enc = tokenizer.encode(text1)
             st = tokenizer.decode(enc.ids[a-1:b])
-        all.append(utils.jaccard(st,train.loc[k,'selected_text']))
+        all.append(jaccard(st,train.loc[k,'selected_text']))
     jac.append(np.mean(all))
     print('>>>> FOLD %i Jaccard ='%(fold+1),np.mean(all))
     print()
