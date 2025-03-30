@@ -1,15 +1,11 @@
-import pandas as pd, numpy as np
-import tensorflow as tf
+import pandas as pd, numpy as np, tensorflow as tf
 import tensorflow.keras.backend as K
-from sklearn.model_selection import StratifiedKFold
 from transformers import *
-import tokenizers # transformers==3.0.2 with tf 2.7 apparently . Set rust path?
-
+from sklearn.model_selection import StratifiedKFold
+import tokenizers
 
 from roberta import models, TokenEncoder
-# import roberta.models as models
 
-print('TF version',tf.__version__)
 
 MAX_LEN = 96
 
@@ -18,28 +14,18 @@ MAX_LEN = 96
 tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('roberta/config/vocab-roberta-base.json', 'roberta/config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True)
 sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
 # Test and train dataset
-test = pd.read_csv('roberta/data/test.csv').fillna('')
-train = pd.read_csv('roberta/data/train.csv').fillna('')
+test = pd.read_csv('./data/test.csv').fillna('')
+train = pd.read_csv('./data/train.csv').fillna('')
 
 # Use a 'TokenEncoder' to create the necessary ground-truth and test-data from 'test' and 'train' data
 # in the format  needed by RoBERTa
-e = TokenEncoder(tokenizer, MAX_LEN)
+e = TokenEncoder(MAX_LEN, tokenizer)
 input_ids, attention_mask, token_type_ids, start_tokens, end_tokens = e.prepare_encode_train(train)
 input_ids_t, attention_mask_t, token_type_ids_t = e.prepare_encode_test(test)
 
 
-# 1) functional API style
-model = models.build_model(MAX_LEN) 
-model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5))
 
-# 2) alternatively, there's tf.keras.models.Model style, but has some disadvantages
-# model = models.MyRobertaModel()
-# optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5)
-# model.compile(loss='categorical_crossentropy', optimizer=optimizer)
-
-
-
-# 
+# Kept the original training-loop unchanged:
 
 jac = []; VER='v0'; DISPLAY=1 # USE display=1 FOR INTERACTIVE
 oof_start = np.zeros((input_ids.shape[0],MAX_LEN))

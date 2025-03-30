@@ -1,15 +1,15 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-
 import roberta
-import tokenizers
 
 
 app = FastAPI()
 
+MAX_LEN = 96
+
 # "Standard" model with default args 
-rob = roberta.RobertaPredictor() 
+rob = roberta.RobertaPredictor(MAX_LEN, 'v0-roberta-0.h5') 
 
 class SentenceItem(BaseModel):
     sentence: str
@@ -18,7 +18,6 @@ class SentenceItem(BaseModel):
 class SentenceBatch(BaseModel):
     sentences: list[str]
     sentiments: list[str]
-
 
 # receive and process a SentenceItem
 @app.post("/predict_sentence/")
@@ -43,15 +42,27 @@ async def receive_post(item: SentenceBatch):
         return {"message": "Internal Server Error", "data": None}
 
 
+@app.get("/")
+def read_root():
+    return {"message": "Hello, world!"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8080)
+
+
 
 
 # Example requests:
 
 # single on /predict_sentence/ 
-# curl -X 'POST' 'http://127.0.0.1:8001/predict_sentence/'      -H 'Content-Type: application/json'      -d '{"sentence": "Going down the beautiful road, I met a horrible rabbit", "sentiment": "negative"}'
+# curl -X POST http://localhost:8001/predict_sentence/ -H 'Content-Type: application/json' -d '{"sentence": "Going down the beautiful road, I met a horrible rabbit", "sentiment": "negative"}'
 # batch on /predict_sentence_batch/
-# curl -X 'POST' 'http://127.0.0.1:8001/predict_sentence_batch/'      -H 'Content-Type: application/json'      -d '{"sentences": ["Going down the beautiful road, I met a horrible rabbit", "while drinking a craft beer, I became damn hungry"], "sentiments": ["negative", "neutral"]}'
+# curl -X POST http://localhost:8001/predict_sentence_batch/ -H 'Content-Type: application/json' -d '{"sentences": ["Going down the beautiful road, I met a horrible rabbit", "while drinking a craft beer, I became damn hungry"], "sentiments": ["negative", "neutral"]}'
+
+# maps 80 of host to 8080 on host 
+# 
+
+# docker run --gpus=all -v $(pwd):/code -p 8001:8001 -w /code -it sebastianfchr/appl_tfdocker:latest -- uvicorn serverapi:app --host 0.0.0.0 --port 8001
+

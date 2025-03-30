@@ -6,37 +6,20 @@ from transformers import *
 import tokenizers # transformers==3.0.2 with tf 2.7 apparently . Set rust path?
 print('TF version',tf.__version__)
 
-# physical_devices = tf.config.list_physical_devices('GPU')
-# print(physical_devices)
-# try:
-#   tf.config.experimental.set_memory_growth(physical_devices[0], True)
-# except:
-#   print("cant")
-import os
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+# import os
+# os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 MAX_LEN = 96
-PATH = './config/'
+PATH = './roberta/config/'
 
 vocap_pth = PATH+'vocab-roberta-base.json'
 merges_pth = PATH+'merges-roberta-base.txt'
 
-# # older versions do it this way:    
-# tokenizer = tokenizers.ByteLevelBPETokenizer(
-#     vocab_file=vocap_pth,
-#     merges_file=merges_pth,
-#     lowercase=True,
-#     add_prefix_space=True
-# )
-# tokenizer = tokenizers.ByteLevelBPETokenizer(
-#     lowercase=True,
-#     add_prefix_space=True
-# )
-# this makes it equal!
-tokenizer = tokenizers.ByteLevelBPETokenizer.from_file(vocap_pth, merges_pth, lowercase=True, add_prefix_space=True) # !!!!!!! MATE! THIS SOLVES IT!
+
+tokenizer = tokenizers.ByteLevelBPETokenizer.from_file(vocap_pth, merges_pth, lowercase=True, add_prefix_space=True)
 
 sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}
-train = pd.read_csv('train.csv').fillna('')
+train = pd.read_csv('data/train.csv').fillna('')
 train.head()
 
 # ================================== train ======================================== 
@@ -56,7 +39,7 @@ for k in range(train.shape[0]):
     idx = text1.find(text2)
     chars = np.zeros((len(text1)))
     chars[idx:idx+len(text2)]=1                             # character-position mask = 1 for text2 inside text1 
-    if text1[idx-1]==' ': chars[idx-1] = 1                  # space before text2 is also included in mask
+    if text1[idx-1]==' ': chars[idx-1] = 1                  # space before text2 is also included in mask, because many tokens begin with ' '
     enc = tokenizer.encode(text1) 
         
     # print(text1)
@@ -86,10 +69,10 @@ for k in range(train.shape[0]):
     # remember that 'enc.ids' is a tokenization of text1, and that text2 ⊆ text1
     # 'toks' is an index-array on enc.ids, which indicates tokens text2 within text1 
     for i,(a,b) in enumerate(offsets): 
-        sm = np.sum(chars[a:b])
+        sm = np.sum(chars[a:b]) # (this tells us if the offset-range is belongs to text2 or not)
         if sm>0: toks.append(i) 
+    # ... going back from token to resp. word-length (through offsets), allows us to index tok(text2) inside tok(text2)  
 
-    # print(toks)
 
         
     s_tok = sentiment_id[train.loc[k,'sentiment']]
@@ -107,14 +90,17 @@ for k in range(train.shape[0]):
     # as ground-truth for the beginning and end indices of post-tokenized text2 within text1 (i.e. toks[0], toks[-1] to one-hot vectors)
     # => this will be predicted from (tokenized_text1, tokenized_sentiment) 
     if len(toks)>0:
-        # print("aaa")
+        # TODO: why never 0? toks[0]+1 (toks[0] >= 0, but toks[0]+1 > 0)
+        # TODO: probably because of the compulsory sentence-beginning-token that's not interesting
+        #   ... *but not part of input text* pushes first real tex-token and all after one to the right!
+        #   ... last one is +1, because toks[-1] is actually the INDEX of the last token. 
+        #   ... but we want to learn end_tokens such that it's after the last gotten index (for non-inclusive indexing in prediction!)
         start_tokens[k,toks[0]+1] = 1
         end_tokens[k,toks[-1]+1] = 1
-    
-    # print("============")
-    # if(k==10): break
-# Note down: the reason it "worked" with tf2.1 setup is that actually we had an old python with old pip,
-# that initialized the tokenizer correctly so that it actually did its work. Taken care of now!
+        # it's also interesting to note that training alone leads to (l < r)
+        
+
+
 
 
 # ================== Test data preparation ==================
@@ -122,7 +108,7 @@ for k in range(train.shape[0]):
 # (that means, since nothing is extracted, we'll just check whether the sentiment is correct?)
 # Q: why exactly is the test-data only [(extracted/original ?)sequence, sentiment] enough for testing? 
 #    i.e. Why is extraction not tested ?
-test = pd.read_csv('test.csv').fillna('')
+test = pd.read_csv('data/test.csv').fillna('')
 
 ct = test.shape[0]
 input_ids_t = np.ones((ct,MAX_LEN),dtype='int32')
@@ -152,6 +138,7 @@ def build_model():
     # x[0] is a representation with hidden-size of the tokenized output (found substring representing sentiment)
     # In the following, it will be put through some layers 
     # x[0] is of (?, MAX_LEN, hidden_size=768). Layers turn it into (?, MAX_LEN)
+    
     x = bert_model(ids,attention_mask=att,token_type_ids=tok)
     
     x1 = tf.keras.layers.Dropout(0.1)(x[0])         # (?, MAX_LEN, hidden_size)
@@ -172,7 +159,6 @@ def build_model():
 
     model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
-
     return model
 
 # ================== Loss metric ==================
@@ -186,93 +172,66 @@ def jaccard(str1, str2):
     return float(len(c)) / (len(a) + len(b) - len(c))
 
 
+# model = build_model() # load HUK model
 
 
 
-model = build_model() # load HUK model
-model.load_weights('weights_final.h5', by_name=True, skip_mismatch=False) # load HUK model
 
-print("apparently success")
+# # ================== train ==================
+jac = []; VER='v0'; DISPLAY=1 # USE display=1 FOR INTERACTIVE
+oof_start = np.zeros((input_ids.shape[0],MAX_LEN))
+oof_end = np.zeros((input_ids.shape[0],MAX_LEN))
+preds_start = np.zeros((input_ids_t.shape[0],MAX_LEN))
+preds_end = np.zeros((input_ids_t.shape[0],MAX_LEN))
 
-idXs = np.arange(0,100)
 
-# # text1s = " "+" ".join(train.loc[idXs[0],'text'].split())
-# print(input_ids[0])
-# print(attention_mask[0])
-# print(token_type_ids[0])
-# # test.loc[idXs, 'text'])
-# # print(test.loc[idXs, 'sentiment'])
 
-# look mate, predict does loops. What about calling it normally
-# is predict a call to model()?
-# qq = model.predict(
-#     [np.stack([input_ids[0]]),
-#     np.stack([attention_mask[0]]),
-#     np.stack([token_type_ids[0]])]
-# )
 
-a, b = model(    
-    (np.stack([input_ids[0]]),
-    np.stack([attention_mask[0]]),
-    np.stack([token_type_ids[0]]))  )
+skf = StratifiedKFold(n_splits=5,shuffle=True,random_state=777)
+for fold,(idxT,idxV) in enumerate(skf.split(input_ids, train.sentiment.values)):
 
-print(a.shape)
-print(b.shape)
-
-# # # ================== train ==================
-# jac = []; VER='v0'; DISPLAY=1 # USE display=1 FOR INTERACTIVE
-# oof_start = np.zeros((input_ids.shape[0],MAX_LEN))
-# oof_end = np.zeros((input_ids.shape[0],MAX_LEN))
-# preds_start = np.zeros((input_ids_t.shape[0],MAX_LEN))
-# preds_end = np.zeros((input_ids_t.shape[0],MAX_LEN))
-
-# skf = StratifiedKFold(n_splits=5,shuffle=True,random_state=777)
-# for fold,(idxT,idxV) in enumerate(skf.split(input_ids, train.sentiment.values)):
-
-#     print('#'*25)
-#     print('### FOLD %i'%(fold+1))
-#     print('#'*25)
+    print('#'*25)
+    print('### FOLD %i'%(fold+1))
+    print('#'*25)
     
-#     # fresh model
-#     K.clear_session()
-#     model = build_model()
-#     model.load_weights('weights_final.h5', by_name=True, skip_mismatch=False) # load HUK model
+    # fresh model
+    K.clear_session()
+    model = build_model()
 
-#     # # callback for saving
-#     # sv = tf.keras.callbacks.ModelCheckpoint('%s-roberta-%i.h5'%(VER,fold), monitor='val_loss', verbose=1, save_best_only=True,
-#     #     save_weights_only=True, mode='auto', save_freq='epoch')
+    # callback for saving
+    sv = tf.keras.callbacks.ModelCheckpoint('%s-roberta-%i.h5'%(VER,fold), monitor='val_loss', verbose=1, save_best_only=True,
+        save_weights_only=True, mode='auto', save_freq='epoch')
 
-#     # model = tf.keras.models.load_model('weights_final.h5') # load HUK model
-#     # model.load_weights('weights_final.h5', by_name=True) # load HUK model
-#     model.fit([input_ids[idxT,], attention_mask[idxT,], token_type_ids[idxT,]], [start_tokens[idxT,], end_tokens[idxT,]], 
-#         epochs=3, batch_size=32  , verbose=DISPLAY, #callbacks=[sv],
-#         validation_data=([input_ids[idxV,],attention_mask[idxV,],token_type_ids[idxV,]], 
-#         [start_tokens[idxV,], end_tokens[idxV,]]))
+    model.fit([input_ids[idxT,], attention_mask[idxT,], token_type_ids[idxT,]], [start_tokens[idxT,], end_tokens[idxT,]], 
+        epochs=3, batch_size=16, verbose=DISPLAY, callbacks=[sv],
+        validation_data=([input_ids[idxV,],attention_mask[idxV,],token_type_ids[idxV,]], 
+        [start_tokens[idxV,], end_tokens[idxV,]]))
     
-#     print('Loading model...')
-#     model.load_weights('%s-roberta-%i.h5'%(VER,fold))
+    print('Loading model...')
+    model.load_weights('%s-roberta-%i.h5'%(VER,fold))
     
-#     print('Predicting OOF...')
-#     oof_start[idxV,],oof_end[idxV,] = model.predict([input_ids[idxV,],attention_mask[idxV,],token_type_ids[idxV,]],verbose=DISPLAY)
+    print('Predicting OOF...')
+    oof_start[idxV,],oof_end[idxV,] = model.predict([input_ids[idxV,],attention_mask[idxV,],token_type_ids[idxV,]],verbose=DISPLAY)
     
-#     print('Predicting Test...')
-#     preds = model.predict([input_ids_t,attention_mask_t,token_type_ids_t],verbose=DISPLAY)
-#     preds_start += preds[0]/skf.n_splits    # this looks like it should have a preds_start[idV, ]
-#     preds_end += preds[1]/skf.n_splits      # this looks like it should have a preds_end[idV, ]
+    print('Predicting Test...')
+    preds = model.predict([input_ids_t,attention_mask_t,token_type_ids_t],verbose=DISPLAY)
+    preds_start += preds[0]/skf.n_splits    # this looks like it should have a preds_start[idV, ]
+    preds_end += preds[1]/skf.n_splits      # this looks like it should have a preds_end[idV, ]
     
-#     # DISPLAY FOLD JACCARD
-#     # this 
-#     all = []
-#     for k in idxV:
-#         a = np.argmax(oof_start[k,])
-#         b = np.argmax(oof_end[k,])
-#         if a>b: 
-#             st = train.loc[k,'text'] # IMPROVE CV/LB with better choice here
-#         else:
-#             text1 = " "+" ".join(train.loc[k,'text'].split())
-#             enc = tokenizer.encode(text1)
-#             st = tokenizer.decode(enc.ids[a-1:b])
-#         all.append(jaccard(st,train.loc[k,'selected_text']))
-#     jac.append(np.mean(all))
-#     print('>>>> FOLD %i Jaccard ='%(fold+1),np.mean(all))
-#     print()
+    # DISPLAY FOLD JACCARD
+    # this 
+    all = []
+    for k in idxV:
+        a = np.argmax(oof_start[k,])
+        b = np.argmax(oof_end[k,])
+        if a>b: 
+            st = train.loc[k,'text'] # IMPROVE CV/LB with better choice here
+        else:
+            text1 = " "+" ".join(train.loc[k,'text'].split())
+            enc = tokenizer.encode(text1)
+            # TODO: The meaning of this is interesting: In my opinion, it should be (a:b+1), because they're still shifted tokens! 
+            st = tokenizer.decode(enc.ids[a-1:b]) 
+        all.append(jaccard(st,train.loc[k,'selected_text']))
+    jac.append(np.mean(all))
+    print('>>>> FOLD %i Jaccard ='%(fold+1),np.mean(all))
+    print()

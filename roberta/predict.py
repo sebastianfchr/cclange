@@ -3,17 +3,19 @@ import numpy as np
 from .models import build_model
 # import .models
 import tokenizers
-
+import os
 
 class RobertaPredictor:
 
-    # standard-paths here assume that it's called from the parent dir
     def __init__(self, 
                  max_len_tokens, 
                  weights_path, 
-                 tokenizer,
+                 tokenizer= tokenizers.ByteLevelBPETokenizer.from_file(
+                     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'vocab-roberta-base.json'), 
+                     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'merges-roberta-base.txt'), 
+                     lowercase=True, add_prefix_space=True),
                  sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}):
-        
+
         # Load structure, then weights. Weights must be it's structurally correct
         self.max_len_tokens = max_len_tokens
         self.model = build_model(self.max_len_tokens)
@@ -22,9 +24,6 @@ class RobertaPredictor:
         self.sentiment_id = sentiment_id
 
 
-
-
-    # TODO: @tf.graph
     def predict_tokenized(self, input_ids, attention_mask):
         # Batch-wise prediction of token-substrings encoded in input_ids and attention_masks,
         # whereas predicted substrings conform to the sentiment. Note that the sentiment is 

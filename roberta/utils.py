@@ -1,16 +1,29 @@
 import numpy as np
 from transformers import *
+import tokenizers
+import os
+package_dir = os.path.dirname(os.path.abspath(__file__))
 
 class TokenEncoder:
+    """ Class with convenience methods for encoding tokens. Constructor defaults this directory's 
+    config and vocabulary-base """
 
-    def __init__(self, tokenizer, max_len_tokens, sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}):
+    def __init__(self, 
+                 max_len_tokens, 
+                 tokenizer= tokenizers.ByteLevelBPETokenizer.from_file(
+                     os.path.join(package_dir, 'config', 'vocab-roberta-base.json'), 
+                     os.path.join(package_dir, 'config', 'merges-roberta-base.txt'), 
+                     lowercase=True, add_prefix_space=True), 
+                 sentiment_id = {'positive': 1313, 'negative': 2430, 'neutral': 7974}):
+
         self.max_len_tokens = max_len_tokens
         self.tokenizer = tokenizer
         self.sentiment_id = sentiment_id
 
     def prepare_encode_train(self, train_pd):
+        """ Train data preparation """
 
-        # ================================== train ======================================== 
+
         num_train_entries = train_pd.shape[0]
         input_ids = np.ones((num_train_entries,self.max_len_tokens),dtype='int32')
         attention_mask = np.zeros((num_train_entries,self.max_len_tokens),dtype='int32')
@@ -21,7 +34,7 @@ class TokenEncoder:
 
         for k in range(train_pd.shape[0]):
             
-            # FIND OVERLAP
+            # find overlap
             text1 = " "+" ".join(train_pd.loc[k,'text'].split())
             text2 = " ".join(train_pd.loc[k,'selected_text'].split())
             idx = text1.find(text2)
@@ -30,7 +43,7 @@ class TokenEncoder:
             if text1[idx-1]==' ': chars[idx-1] = 1                  # space before text2 is also included in mask
             enc = self.tokenizer.encode(text1) 
                 
-            # ID_OFFSETS
+            
             offsets = []; idx=0
             # 'offsets' are the string's subranges that correspond to the encoded tokens enc.id
             # in congruent sequence. (Ranges (left, right) not including 'right')
@@ -40,8 +53,7 @@ class TokenEncoder:
                 offsets.append((idx,idx+len(w)))
                 idx += len(w)
             
-            # print("offsets", offsets)
-            # START END TOKENS
+
             toks = []
             # remember that 'enc.ids' is a tokenization of text1, and that text2 ⊆ text1
             # 'toks' is an index-array on enc.ids, which indicates tokens text2 within text1 
@@ -67,7 +79,6 @@ class TokenEncoder:
             # as ground-truth for the beginning and end indices of post-tokenized text2 within text1 (i.e. toks[0], toks[-1] to one-hot vectors)
             # => this will be predicted from (tokenized_text1, tokenized_sentiment) 
             if len(toks)>0:
-                # print("aaa")
                 start_tokens[k,toks[0]+1] = 1
                 end_tokens[k,toks[-1]+1] = 1
 
@@ -77,12 +88,8 @@ class TokenEncoder:
 
 
     def prepare_encode_test(self, test_pd):
-        # ================== Test data preparation ==================
-        # Similar for test, as we did for train. Here, we only have token-sequences and sentiments
-        # (that means, since nothing is extracted, we'll just check whether the sentiment is correct?)
-        # Q: why exactly is the test-data only [(extracted/original ?)sequence, sentiment] enough for testing? 
-        #    i.e. Why is extraction not tested ?
-
+        """ Test data preparation: Similar to train, with only token-sequences and sentiments """
+        
         num_test_entries = test_pd.shape[0]
         input_ids_t = np.ones((num_test_entries, self.max_len_tokens),dtype='int32')
         attention_mask_t = np.zeros((num_test_entries, self.max_len_tokens),dtype='int32')
@@ -103,9 +110,8 @@ class TokenEncoder:
 
 
 
-# ================== Loss metric ==================
-# will be used to determine overlap of tokenized sentence's token-subsequence from
-# prediction (later rextracted per predicted one-hot indices) and desired subsequence
+# Jaccard: Loss Metric. Determines overlap of two sentences. It is used in the context of the training-loop, 
+# where the predicted token-sequence is converted to a sentence (-fragment), and intersected with prompt-sentence 
 def jaccard(str1, str2): 
     a = set(str1.lower().split()) 
     b = set(str2.lower().split())
