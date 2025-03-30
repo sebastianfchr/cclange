@@ -1,6 +1,6 @@
 import pandas as pd, numpy as np, tensorflow as tf
 import tensorflow.keras.backend as K
-from transformers import *
+# from transformers import *
 from sklearn.model_selection import StratifiedKFold
 import tokenizers
 from roberta import models, TokenEncoder, jaccard

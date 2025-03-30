@@ -1,0 +1,11 @@
+pandas
+tensorflow
+numpy # usually included 
+setuptools 
+wheel
+scikit-learn
+transformers
+protobuf
+# fastapi
+pytest
+matplotlib

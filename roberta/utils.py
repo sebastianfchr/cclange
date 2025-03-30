@@ -1,5 +1,4 @@
 import numpy as np
-from transformers import *
 import tokenizers
 import os
 package_dir = os.path.dirname(os.path.abspath(__file__))

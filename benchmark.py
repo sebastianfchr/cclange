@@ -55,8 +55,7 @@ def chunked_bare_requests(sentences: List[str], sentiments: List[str]):
     return time.time()-start 
 
 
-xs = np.arange(1, 2, dtype=int)
-# xs = np.arange(1, 31, dtype=int)
+xs = np.arange(1, 31, dtype=int)
 
 # make one dummy request to warm up tensorflow cuda-kernel launch (I'm not joking!)
 single_bare_requests(test['text'][:1], test['sentiment'][:1])
