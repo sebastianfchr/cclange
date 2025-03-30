@@ -4,6 +4,7 @@ from .models import build_model
 # import .models
 import tokenizers
 import os
+from typing import List
 
 class RobertaPredictor:
 
@@ -46,7 +47,7 @@ class RobertaPredictor:
         return ls, rs
 
     
-    def predict_sentence_batch(self, sentences: list[str], sentiments: list[str]):
+    def predict_sentence_batch(self, sentences: List[str], sentiments: List[str]):
         # writing is cumbersome, but optimized: allow batchwise prediction inside model!
 
         assert(all([s in self.sentiment_id.keys() for s in sentiments]))

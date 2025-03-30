@@ -14,18 +14,15 @@ class TestClassPredictor:
 
         num_elements_tested = 10
 
-        # Test Input Token Data Preparation
         tokenizer = tokenizers.ByteLevelBPETokenizer.from_file('./roberta/config/vocab-roberta-base.json', './roberta/config/merges-roberta-base.txt', lowercase=True, add_prefix_space=True) 
-        test = pd.read_csv('./data/test.csv').fillna('')
-
-        e = TokenEncoder(MAX_LEN, tokenizer)
-        input_ids_t, attention_mask_t, _ = e.prepare_encode_test(test)
-
         rp = RobertaPredictor(MAX_LEN, 'v0-roberta-0.h5', tokenizer)
 
         # Version 1) 
         # Use inputs from tokenization, manual tokenized prediction, and decoding of prediction to sentence-fragments
 
+        test = pd.read_csv('./data/test.csv').fillna('')
+        e = TokenEncoder(MAX_LEN, tokenizer)
+        input_ids_t, attention_mask_t, _ = e.prepare_encode_test(test)
         # ids and attention_masks. Predict left end right end of subsequence-range within ids 
         ids, ams = input_ids_t[0:num_elements_tested], attention_mask_t[0:num_elements_tested]
         ls, rs= rp.predict_tokenized(ids, ams)
@@ -47,6 +44,7 @@ class TestClassPredictor:
         assert(sentences_manual == sentences_automatic)
 
 class TestAPI:
+    """ These tests make sure that the API behaves properly """
 
     def test_single_request(self):
         pass

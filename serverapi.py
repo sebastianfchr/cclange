@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
+from typing import List
 import roberta
 
 app = FastAPI()
@@ -25,8 +25,8 @@ class SentenceItem(BaseModel):
     sentiment: str
 
 class SentenceBatch(BaseModel):
-    sentences: list[str]
-    sentiments: list[str]
+    sentences: List[str]
+    sentiments: List[str]
 
 # receive and process a SentenceItem
 @app.post("/predict_sentence/")
@@ -46,7 +46,7 @@ async def receive_post(item: SentenceBatch):
         sentence_excerpts = rob.predict_sentence_batch(item.sentences, item.sentiments)
         return {"message": "OK", "data": sentence_excerpts}
     except AssertionError:
-        return {"message": "Format Error: Input should be of format '{' sentences: list[str], sentiments: list[str] '}', where sentiment is 'positive'/'neutral'/'negative', and len(sentiments)==len(sentences)", "data": None}
+        return {"message": "Format Error: Input should be of format '{' sentences: List[str], sentiments: List[str] '}', where sentiment is 'positive'/'neutral'/'negative', and len(sentiments)==len(sentences)", "data": None}
     except:
         return {"message": "Internal Server Error", "data": None}
 
