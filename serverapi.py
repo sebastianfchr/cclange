@@ -1,10 +1,20 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import roberta
 
-
 app = FastAPI()
+
+# switch off cors. We're local 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # This allows all origins, but you can restrict this to specific domains
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
 
 MAX_LEN = 96
 

@@ -9,7 +9,8 @@ MAX_LEN = 96
 class TestClassPredictor: 
 
     def test_batched_sentence_extraction_vs_manual(self):
-        """ RobertaPredictor.predict_sentence_batch() """
+        """ Sanity check for RobertaPredictor.predict_sentence_batch(). Tests whether it produces 
+        the same sentence-fragment as manual tokenization, prediction, and decoding """
 
         num_elements_tested = 10
 
@@ -35,7 +36,7 @@ class TestClassPredictor:
 
 
         # Version 2) 
-        # Automatic tokenization, prediction, decoding of plain-text
+        # Encapsulated tokenization, prediction, decoding of plain-text inside function
 
         # now note that "ids" were already (<s> {sentence_tokenized} </s></s> sentiment_token </s>)
         # if we feed in (sentence, sentiment) as strings, our RobertaPredictor.predict_sentence_batch 
@@ -47,8 +48,8 @@ class TestClassPredictor:
 
 class TestAPI:
 
-    def test_single_request():
+    def test_single_request(self):
         pass
 
-    def test_batch_request():
+    def test_batch_request(self):
         pass 
