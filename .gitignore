@@ -1,4 +1,6 @@
 *.h5
 **/.*
+!.gitignore
+!.gitattributes
 **/__pycache__
 **/.pytest_cache
